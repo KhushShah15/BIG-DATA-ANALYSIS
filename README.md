@@ -6,3 +6,6 @@
 *DOMAIN*: Data Analytics 
 *DURATION*: 12 WEEKS
 *MENTOR*: Neela Santhosh
+
+TOOLS  : Dask, Pandas, NumPy, Matplotlib, Seaborn, PyArrow
+DATASET: Synthetic E-Commerce Orders
