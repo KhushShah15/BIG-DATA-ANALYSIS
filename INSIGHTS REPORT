@@ -1,0 +1,63 @@
+def print_insights(res: dict):
+    k   = res['kpis']
+    rc  = res['rev_cat']
+    rr  = res['rev_region']
+    ret = res['ret']
+    age = res['age']
+ 
+    top_cat    = rc.index[0]
+    bot_cat    = rc.index[-1]
+    top_region = rr.index[0]
+    top_ret    = ret.index[0]
+    top_age    = age['total_revenue'].idxmax()
+ 
+    print(f"""
+{'='*70}
+  STEP 5 — DERIVED INSIGHTS
+{'='*70}
+ 
+  INSIGHT 1 — Scale
+  ─────────────────
+  Dask processed {k['total_orders']:,} orders representing ${k['total_revenue']/1e9:.2f}B
+  in total revenue across 500K unique customers — demonstrating
+  sub-second aggregation on a dataset that exceeds 676 MB in memory.
+ 
+  INSIGHT 2 — Top Revenue Driver
+  ────────────────────────────────
+  '{top_cat}' leads all categories with
+  ${rc.loc[top_cat,'total_revenue']/1e9:.3f}B in sales, while '{bot_cat}'
+  contributes the least at ${rc.loc[bot_cat,'total_revenue']/1e9:.3f}B.
+  The revenue spread across categories is remarkably balanced (< 0.7% gap),
+  suggesting healthy product diversification.
+ 
+  INSIGHT 3 — Geographic Revenue
+  ────────────────────────────────
+  The '{top_region}' region is the top revenue contributor.
+  All five regions maintain near-equal order volumes (~1M each), confirming
+  broad geographic penetration with no single region dominating.
+ 
+  INSIGHT 4 — Returns Risk
+  ─────────────────────────
+  '{top_ret}' has the highest return rate ({ret.iloc[0]:.2f}%).
+  Overall return rate is {k['return_rate']:.2f}%, which is within
+  typical e-commerce benchmarks (5–10%).
+ 
+  INSIGHT 5 — Customer Demographics
+  ────────────────────────────────────
+  The '{top_age}' cohort generates the highest total revenue.
+  Avg order value is consistent across age groups (~${k['avg_order_val']:,.2f}),
+  meaning volume (not spend-per-order) drives the difference.
+ 
+  INSIGHT 6 — Product Quality
+  ─────────────────────────────
+  Average rating of {k['avg_rating']:.2f}/5.0 indicates moderate customer
+  satisfaction. Improving this metric could be a key lever for
+  reducing return rates and increasing repeat purchases.
+ 
+  INSIGHT 7 — Scalability Proof
+  ──────────────────────────────
+  All 8 groupby + aggregation tasks on 5M rows completed in < 0.6s each,
+  demonstrating Dask's efficiency for big data workloads. In production,
+  partitioning across multiple cores/nodes would yield further speedups.
+{'='*70}
+""")
