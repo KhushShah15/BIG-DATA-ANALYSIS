@@ -1,0 +1,10 @@
+def load_with_dask(path: str) -> dd.DataFrame:
+    print(f"\n{'='*70}")
+    print(f"  STEP 2 — Loading dataset with Dask (lazy evaluation)")
+    print(f"{'='*70}")
+    t0  = time.time()
+    ddf = dd.read_parquet(path)
+    print(f"  ✓ Partitions : {ddf.npartitions}")
+    print(f"  ✓ Columns    : {list(ddf.columns)}")
+    print(f"  ✓ Load time  : {round(time.time()-t0, 3)}s  (lazy — no compute yet)")
+    return ddf
