@@ -1,0 +1,5 @@
+def timed(label: str, task):
+    t0  = time.time()
+    res = task.compute() if hasattr(task, 'compute') else task
+    print(f"  ✓ [{label}] computed in {round(time.time()-t0, 3)}s")
+    return res
