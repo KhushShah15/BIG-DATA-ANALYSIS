@@ -1,0 +1,11 @@
+if __name__ == '__main__':
+    overall_start = time.time()
+ 
+    gen_time = generate_dataset(N_ROWS, PARQUET_PATH)
+    ddf      = load_with_dask(PARQUET_PATH)
+    results  = run_analyses(ddf)
+    visualize(results, OUTPUT_DIR)
+    print_insights(results)
+ 
+    print(f"  ⏱  Total wall-clock time: {round(time.time()-overall_start, 2)}s")
+    print(f"  📁 Outputs saved to: ./{OUTPUT_DIR}/\n")
