@@ -1,0 +1,136 @@
+def fmt_millions(x, _):
+    return f'${x/1e9:.2f}B' if x >= 1e9 else f'${x/1e6:.1f}M'
+ 
+def visualize(res: dict, output_dir: str):
+    print(f"\n{'='*70}")
+    print(f"  STEP 4 — Generating visualisations")
+    print(f"{'='*70}")
+ 
+    fig, axes = plt.subplots(3, 3, figsize=(20, 16))
+    fig.suptitle('Big Data Analysis Dashboard  —  5 Million E-Commerce Orders\n'
+                 'Processed with Dask (Distributed Computing)',
+                 fontsize=16, fontweight='bold', y=0.98)
+    fig.patch.set_facecolor('#f8f9fa')
+ 
+    k = res['kpis']
+ 
+    # ── Plot 1: Revenue by Category (horizontal bar) ──────────────────────────
+    ax = axes[0, 0]
+    rc = res['rev_cat']
+    bars = ax.barh(rc.index, rc['total_revenue']/1e9, color=PALETTE[:len(rc)])
+    ax.set_xlabel('Total Revenue ($ Billion)')
+    ax.set_title('Revenue by Product Category', fontweight='bold')
+    ax.bar_label(bars, fmt='${:,.2f}B',
+                 labels=[f'${v/1e9:.2f}B' for v in rc['total_revenue']],
+                 padding=4, fontsize=8)
+    ax.set_xlim(0, rc['total_revenue'].max()/1e9 * 1.25)
+ 
+    # ── Plot 2: Revenue by Region (donut) ─────────────────────────────────────
+    ax = axes[0, 1]
+    rr = res['rev_region']
+    wedges, texts, autotexts = ax.pie(
+        rr['total_revenue'], labels=rr.index, autopct='%1.1f%%',
+        colors=PALETTE[:len(rr)], startangle=140,
+        wedgeprops={'width': 0.5})
+    ax.set_title('Revenue Share by Region', fontweight='bold')
+    for at in autotexts:
+        at.set_fontsize(8)
+ 
+    # ── Plot 3: Monthly Revenue Trend ─────────────────────────────────────────
+    ax = axes[0, 2]
+    m = res['monthly']
+    ax.fill_between(range(len(m)), m['revenue']/1e6, alpha=0.3, color=PALETTE[1])
+    ax.plot(range(len(m)), m['revenue']/1e6, color=PALETTE[1], linewidth=2)
+    tick_step = max(1, len(m)//12)
+    ax.set_xticks(range(0, len(m), tick_step))
+    ax.set_xticklabels(m['period'].iloc[::tick_step], rotation=45, ha='right', fontsize=7)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'${x:.0f}M'))
+    ax.set_title('Monthly Revenue Trend', fontweight='bold')
+    ax.set_ylabel('Revenue ($ Million)')
+ 
+    # ── Plot 4: Payment Method breakdown ──────────────────────────────────────
+    ax = axes[1, 0]
+    pay = res['pay']
+    bars = ax.bar(pay.index, pay['total_revenue']/1e9, color=PALETTE[:len(pay)])
+    ax.set_title('Revenue by Payment Method', fontweight='bold')
+    ax.set_ylabel('Revenue ($ Billion)')
+    ax.bar_label(bars, fmt='${:.2f}B',
+                 labels=[f'${v/1e9:.2f}B' for v in pay['total_revenue']],
+                 padding=4, fontsize=8)
+    ax.tick_params(axis='x', rotation=20)
+ 
+    # ── Plot 5: Return Rate by Category ───────────────────────────────────────
+    ax = axes[1, 1]
+    ret = res['ret']
+    colors = [PALETTE[2] if v > ret.mean() else PALETTE[6] for v in ret.values]
+    bars = ax.barh(ret.index, ret.values, color=colors)
+    ax.axvline(ret.mean(), color='black', linestyle='--', linewidth=1,
+               label=f'Avg {ret.mean():.2f}%')
+    ax.set_xlabel('Return Rate (%)')
+    ax.set_title('Return Rate by Category', fontweight='bold')
+    ax.bar_label(bars, fmt='%.2f%%',
+                 labels=[f'{v:.2f}%' for v in ret.values],
+                 padding=3, fontsize=8)
+    ax.legend(fontsize=8)
+ 
+    # ── Plot 6: Revenue by Age Group ──────────────────────────────────────────
+    ax = axes[1, 2]
+    age = res['age']
+    ax.bar(age.index, age['total_revenue']/1e9, color=PALETTE[:len(age)],
+           edgecolor='white', linewidth=1.5)
+    ax.set_title('Revenue by Customer Age Group', fontweight='bold')
+    ax.set_ylabel('Revenue ($ Billion)')
+    ax.set_xlabel('Age Group')
+ 
+    # ── Plot 7: Correlation Heatmap ────────────────────────────────────────────
+    ax = axes[2, 0]
+    corr = res['corr']
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+    sns.heatmap(corr, annot=True, fmt='.2f', ax=ax, mask=mask,
+                cmap='RdBu_r', center=0, linewidths=0.5,
+                annot_kws={'size': 9})
+    ax.set_title('Feature Correlation Matrix\n(1% Sample)', fontweight='bold')
+ 
+    # ── Plot 8: Top 10 Segments ────────────────────────────────────────────────
+    ax = axes[2, 1]
+    top = res['top_seg']
+    top['label'] = top['category'] + '\n(' + top['region'] + ')'
+    ax.barh(top['label'], top['revenue']/1e6, color=PALETTE[:10])
+    ax.set_xlabel('Revenue ($ Million)')
+    ax.set_title('Top 10 Category × Region Segments', fontweight='bold')
+    ax.invert_yaxis()
+ 
+    # ── Plot 9: KPI Summary Card ───────────────────────────────────────────────
+    ax = axes[2, 2]
+    ax.axis('off')
+    kpi_lines = [
+        ('📦 Total Orders',    f"{k['total_orders']:,}"),
+        ('💰 Total Revenue',   f"${k['total_revenue']/1e9:.2f}B"),
+        ('🛒 Avg Order Value', f"${k['avg_order_val']:,.2f}"),
+        ('↩  Return Rate',    f"{k['return_rate']:.2f}%"),
+        ('👤 Unique Customers',f"{k['unique_customers']:,}"),
+        ('⭐ Avg Rating',      f"{k['avg_rating']:.2f} / 5.0"),
+        ('🗄  Dataset Size',   f"5,000,000 rows"),
+    ]
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.set_facecolor('#1a1a2e')
+    ax.add_patch(plt.Rectangle((0,0),1,1, facecolor='#1a1a2e', transform=ax.transAxes,
+                                clip_on=False, zorder=0))
+    ax.text(0.5, 0.96, 'KEY METRICS', ha='center', va='top',
+            fontsize=12, fontweight='bold', color='#f0e6d3',
+            transform=ax.transAxes)
+    for i, (label, val) in enumerate(kpi_lines):
+        y = 0.85 - i*0.12
+        ax.text(0.08, y, label, ha='left', va='center', fontsize=9,
+                color='#adb5bd', transform=ax.transAxes)
+        ax.text(0.92, y, val, ha='right', va='center', fontsize=10,
+                fontweight='bold', color='#4fc3f7', transform=ax.transAxes)
+        if i < len(kpi_lines)-1:
+            ax.axhline(y=y - 0.06, xmin=0.05, xmax=0.95,
+                       color='#2d3561', linewidth=0.5)
+ 
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    out_path = os.path.join(output_dir, 'big_data_dashboard.png')
+    plt.savefig(out_path, dpi=150, bbox_inches='tight', facecolor='#f8f9fa')
+    plt.close()
+    print(f"  ✓ Dashboard saved → {out_path}")
