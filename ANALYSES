@@ -1,0 +1,87 @@
+def run_analyses(ddf: dd.DataFrame) -> dict:
+    print(f"\n{'='*70}")
+    print(f"  STEP 3 — Running 8 Dask analyses")
+    print(f"{'='*70}")
+ 
+    # --- KPIs ---
+    total_revenue    = timed("Total Revenue",    ddf['revenue'].sum())
+    total_orders     = len(ddf)
+    avg_order_val    = timed("Avg Order Value",  ddf['revenue'].mean())
+    return_rate      = timed("Return Rate",      ddf['is_returned'].mean()) * 100
+    unique_customers = timed("Unique Customers", ddf['customer_id'].nunique())
+    avg_rating       = timed("Avg Rating",       ddf['rating'].mean())
+ 
+    print(f"\n  ── KPI SUMMARY ──────────────────────────────")
+    print(f"  Total Revenue     : ${total_revenue:>18,.2f}")
+    print(f"  Total Orders      : {total_orders:>19,}")
+    print(f"  Avg Order Value   : ${avg_order_val:>18,.2f}")
+    print(f"  Return Rate       : {return_rate:>18.2f}%")
+    print(f"  Unique Customers  : {unique_customers:>19,}")
+    print(f"  Avg Product Rating: {avg_rating:>18.2f} / 5.0")
+ 
+    # --- Revenue by category ---
+    rev_cat = (ddf.groupby('category')['revenue']
+                  .agg(['sum','mean','count'])
+                  .compute()
+                  .sort_values('sum', ascending=False))
+    rev_cat.columns = ['total_revenue','avg_order_value','order_count']
+    print(f"\n  ── REVENUE BY CATEGORY ──────────────────────")
+    print(rev_cat.to_string())
+ 
+    # --- Revenue by region ---
+    rev_region = (ddf.groupby('region')['revenue']
+                     .agg(['sum','mean','count'])
+                     .compute()
+                     .sort_values('sum', ascending=False))
+    rev_region.columns = ['total_revenue','avg_order_value','order_count']
+ 
+    # --- Monthly trend ---
+    monthly = (ddf.groupby(['year','month'])['revenue']
+                  .sum()
+                  .compute()
+                  .reset_index()
+                  .sort_values(['year','month']))
+    monthly['period'] = (monthly['year'].astype(str) + '-' +
+                         monthly['month'].astype(str).str.zfill(2))
+ 
+    # --- Payment methods ---
+    pay = (ddf.groupby('payment_method')['revenue']
+              .agg(['sum','count'])
+              .compute()
+              .sort_values('sum', ascending=False))
+    pay.columns = ['total_revenue','order_count']
+ 
+    # --- Return rate by category ---
+    ret = (ddf.groupby('category')['is_returned']
+              .mean()
+              .compute()
+              .sort_values(ascending=False) * 100).round(2)
+ 
+    # --- Age group ---
+    age_order = ['18-24','25-34','35-44','45-54','55-64','65+']
+    age = (ddf.groupby('age_group')['revenue']
+              .agg(['sum','mean','count'])
+              .compute())
+    age.columns = ['total_revenue','avg_order_value','order_count']
+    age = age.reindex(age_order)
+ 
+    # --- Correlation (sample) ---
+    sample = ddf[['quantity','unit_price','discount_pct','rating','revenue']].sample(
+        frac=0.01, random_state=42).compute()
+    corr = sample.corr()
+ 
+    # --- Top segments (category × region) ---
+    top_seg = (ddf.groupby(['category','region'])['revenue']
+                  .sum()
+                  .compute()
+                  .reset_index()
+                  .sort_values('revenue', ascending=False)
+                  .head(10))
+ 
+    return dict(
+        kpis=dict(total_revenue=total_revenue, total_orders=total_orders,
+                  avg_order_val=avg_order_val, return_rate=return_rate,
+                  unique_customers=unique_customers, avg_rating=avg_rating),
+        rev_cat=rev_cat, rev_region=rev_region, monthly=monthly,
+        pay=pay, ret=ret, age=age, corr=corr, top_seg=top_seg,
+    )
