@@ -1,0 +1,42 @@
+def generate_dataset(n: int, path: str) -> float:
+    """Create a realistic e-commerce orders dataset and persist as Parquet."""
+    print(f"\n{'='*70}")
+    print(f"  STEP 1 — Generating {n:,}-row synthetic dataset")
+    print(f"{'='*70}")
+ 
+    categories      = ['Electronics','Clothing','Books','Home & Garden',
+                        'Sports','Toys','Beauty','Automotive','Food','Health']
+    regions         = ['North','South','East','West','Central']
+    payment_methods = ['Credit Card','Debit Card','PayPal','Crypto','Bank Transfer']
+    age_groups      = ['18-24','25-34','35-44','45-54','55-64','65+']
+ 
+    t0 = time.time()
+    df = pd.DataFrame({
+        'order_id'      : np.arange(1, n+1),
+        'customer_id'   : np.random.randint(1, 500_001, n),
+        'category'      : np.random.choice(categories, n),
+        'region'        : np.random.choice(regions, n),
+        'payment_method': np.random.choice(payment_methods, n),
+        'age_group'     : np.random.choice(age_groups, n),
+        'quantity'      : np.random.randint(1, 11, n),
+        'unit_price'    : np.round(np.random.uniform(5, 2000, n), 2),
+        'discount_pct'  : np.round(np.random.uniform(0, 0.40, n), 2),
+        'rating'        : np.round(np.random.uniform(1, 5, n), 1),
+        'order_date'    : pd.date_range('2021-01-01', periods=n, freq='17s'),
+        'is_returned'   : np.random.choice([True, False], n, p=[0.08, 0.92]),
+    })
+    df['revenue']  = np.round(df['quantity'] * df['unit_price'] * (1 - df['discount_pct']), 2)
+    df['year']     = df['order_date'].dt.year
+    df['month']    = df['order_date'].dt.month
+    df['quarter']  = df['order_date'].dt.quarter
+ 
+    df.to_parquet(path, index=False)
+    elapsed = round(time.time() - t0, 2)
+    mem_mb  = df.memory_usage(deep=True).sum() / 1e6
+ 
+    print(f"  ✓ Rows      : {n:,}")
+    print(f"  ✓ Columns   : {df.shape[1]}")
+    print(f"  ✓ Memory    : {mem_mb:.1f} MB")
+    print(f"  ✓ Saved to  : {path}")
+    print(f"  ✓ Time taken: {elapsed}s")
+    return elapsed
