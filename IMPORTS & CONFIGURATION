@@ -1,0 +1,27 @@
+import dask.dataframe as dd
+import pandas as pd
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import seaborn as sns
+import time
+import warnings
+import os
+ 
+warnings.filterwarnings('ignore')
+np.random.seed(42)
+ 
+OUTPUT_DIR   = "outputs"
+PARQUET_PATH = "ecommerce_big_data.parquet"
+N_ROWS       = 5_000_000          # 5 million rows
+ 
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+ 
+# Colour palette
+PALETTE = ['#0f4c81','#2e86ab','#a23b72','#f18f01','#c73e1d',
+           '#3b1f2b','#44bba4','#e94f37','#393e41','#6b4226']
+sns.set_theme(style='whitegrid', palette=PALETTE)
+plt.rcParams.update({'font.family': 'DejaVu Sans', 'axes.spines.top': False,
+                     'axes.spines.right': False})
